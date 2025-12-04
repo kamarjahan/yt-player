@@ -14,10 +14,13 @@ const CustomPlayer = ({ videoId }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   
+  // NEW: State for auto-hiding controls
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef(null);
+  
   const containerRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // FIX: useMemo prevents the player from reloading every second when state changes
   const opts = useMemo(() => ({
     height: '100%',
     width: '100%',
@@ -30,6 +33,40 @@ const CustomPlayer = ({ videoId }) => {
       iv_load_policy: 3, 
     },
   }), []);
+
+  // --- Auto-Hide Logic ---
+  const handleInteraction = () => {
+    setShowControls(true);
+
+    // Clear existing timer
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+
+    // Only set timer to hide if video is playing
+    if (isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000); // 3 Seconds delay
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isPlaying) {
+      setShowControls(false);
+    }
+  };
+
+  // Ensure controls stay visible when paused
+  useEffect(() => {
+    if (!isPlaying) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    } else {
+      // If we just started playing, trigger the auto-hide logic
+      handleInteraction();
+    }
+  }, [isPlaying]);
 
   // --- Helper: Format Time ---
   const formatTime = (seconds) => {
@@ -51,7 +88,6 @@ const CustomPlayer = ({ videoId }) => {
   };
 
   const onStateChange = (event) => {
-    // 1 = playing, 2 = paused
     setIsPlaying(event.data === 1);
   };
 
@@ -62,7 +98,6 @@ const CustomPlayer = ({ videoId }) => {
         const time = player.getCurrentTime();
         setCurrentTime(time);
         
-        // Only update duration if it changes significantly to avoid jitter
         const dur = player.getDuration();
         if (dur && dur !== duration) setDuration(dur);
       }, 1000);
@@ -87,6 +122,7 @@ const CustomPlayer = ({ videoId }) => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
     player.seekTo(newTime);
+    handleInteraction(); // Keep controls shown while dragging
   };
 
   const toggleFullScreen = () => {
@@ -126,14 +162,16 @@ const CustomPlayer = ({ videoId }) => {
     }
   };
 
-  // Determine if video is Live
   const isLiveStream = duration === 0 || duration > 100000 || (player?.getVideoData?.()?.isLive); 
   const isAtLiveEdge = Math.abs(duration - currentTime) < 15;
 
   return (
     <div 
       ref={containerRef} 
-      className={`relative group w-full bg-black overflow-hidden shadow-2xl ${isFullScreen ? 'h-screen' : 'aspect-video rounded-xl'}`}
+      onMouseMove={handleInteraction}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleInteraction}
+      className={`relative group w-full bg-black overflow-hidden shadow-2xl ${isFullScreen ? 'h-screen' : 'aspect-video rounded-xl'} ${!showControls && isPlaying ? 'cursor-none' : 'cursor-default'}`}
     >
       <YouTube 
         videoId={videoId} 
@@ -145,7 +183,9 @@ const CustomPlayer = ({ videoId }) => {
       />
 
       {/* --- Custom Overlay --- */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 z-10">
+      <div 
+        className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-4 z-10 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+      >
         
         {/* Progress Bar */}
         <div className="w-full mb-4 flex items-center gap-4 group/slider">
