@@ -3,43 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42;
-}
-
-html {
-  scroll-behavior: smooth;
+  --background: #0f0f0f;
+  --foreground: #ffffff;
 }
 
 body {
-  font-family: sans-serif;
-  background: #F8FAFC;
-  color: #0F172A;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #0f0f0f;
 }
 ::-webkit-scrollbar-thumb {
-  background: #64748B;
+  background: #717171;
   border-radius: 4px;
 }
-
-/* Market Ticker Animation */
-@keyframes scroll {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
 
-.animate-ticker {
-  animation: scroll 25s linear infinite;
-  white-space: nowrap;
-  display: inline-block;
+/* Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-/* Pause on hover so people can read it */
-.animate-ticker:hover {
-  animation-play-state: paused;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
